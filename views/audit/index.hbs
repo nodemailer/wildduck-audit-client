@@ -82,13 +82,14 @@
                     <input type="checkbox">
                 </th>
                 <th scope="col" class="email-from-cell">From</th>
-                <th scope="col" class="email-from-cell">To</th>
-                <th scope="col" class="email-subject-cell">Subject</th>
-                <th scope="col" class="email-date-cell">Date</th>
+                <th scope="col" class="email-to-cell">To</th>
+                <th scope="col" class="email-subject-cell"><small class="text-muted"
+                        style="display: inline-block;width: 20px; margin-right: 0.3rem;"></small>Subject</th>
+                <th scope="col" class="email-date-cell text-right">Date</th>
             </tr>
         </thead>
         <tbody>
-
+            {{#each listing.data}}
             <tr>
                 <td class="email-check-row">
                     <input type="checkbox" class="checkMessage" data-message="{{id}}" />
@@ -96,32 +97,39 @@
 
                 <td class="email-table-cell email-from-cell">
                     <a href="{{url}}" class="email-list-a">
-                        {{displayFrom}}
+                        {{display.from}}
                     </a>
                 </td>
 
-                <td class="email-table-cell email-from-cell">
+                <td class="email-table-cell email-to-cell">
                     <a href="{{url}}" class="email-list-a">
-                        {{displayTo}}
+                        {{display.to}}
                     </a>
                 </td>
 
                 <td class="email-table-cell email-subject-cell">
-                    <a href="{{url}}" class="email-list-a"> {{subject}} <span class="text-muted">{{#if subject}}–
-                            {{/if}}{{intro}}</span> </a>
+
+                    <a href="{{url}}" class="email-list-a" title="{{display.subject}}" style="position: relative;">
+                        <small class="text-muted" style="display: inline-block;width: 20px;">
+                            {{#if display.attachments}}
+                            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-paperclip"
+                                fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd"
+                                    d="M4.5 3a2.5 2.5 0 0 1 5 0v9a1.5 1.5 0 0 1-3 0V5a.5.5 0 0 1 1 0v7a.5.5 0 0 0 1 0V3a1.5 1.5 0 1 0-3 0v9a2.5 2.5 0 0 0 5 0V5a.5.5 0 0 1 1 0v7a3.5 3.5 0 1 1-7 0V3z" />
+                            </svg>
+                            {{/if}}
+                        </small>
+
+                        {{display.subject}}</a>
                 </td>
 
                 <td class="email-table-cell text-right email-date-cell">
                     <a href="{{url}}" class="email-list-a">
-                        {{#if attachments}}
-                        <span class="btn-inner--icon float-left">
-                            <i data-feather="paperclip"></i>
-                        </span>
-                        {{/if}}
-                        <span class="datestring-fixed" title="{{date}}"></span>
+                        <span class="datetimestr" title="{{display.date}}"></span>
                     </a>
                 </td>
             </tr>
+            {{/each}}
 
         </tbody>
     </table>

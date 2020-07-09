@@ -44,6 +44,17 @@ document.addEventListener('DOMContentLoaded', () => {
         elm.textContent = moment(elm.title).format('ll');
     }
 
+    for (let elm of document.querySelectorAll('.datetimestr')) {
+        elm.textContent = moment(elm.title).calendar(null, {
+            sameDay: 'HH:MM',
+            lastDay: 'D. MMM HH:MM',
+            nextDay: 'D. MMM',
+            lastWeek: 'D. MMM',
+            nextWeek: 'D. MMM',
+            sameElse: 'DD/MM/YY'
+        });
+    }
+
     $(function () {
         $('[data-toggle="tooltip"]').tooltip();
     });
