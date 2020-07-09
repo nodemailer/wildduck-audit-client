@@ -6,6 +6,8 @@ const Joi = require('@hapi/joi');
 const { asyncifyRequest, validationErrors } = require('../lib/tools');
 const { requireLogin, login, logout } = require('../lib/passport');
 
+router.use('/audit', requireLogin, require('./audit/index'));
+
 router.get(
     '/',
     asyncifyRequest(async (req, res) => {
