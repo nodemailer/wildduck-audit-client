@@ -9,13 +9,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 10 * 1000);
 
+    const format = 'YYYY/MM/DD';
+
     $('input.daterange').each(function () {
         const input = $(this);
-        const format = 'YYYY/MM/DD';
         $(this).daterangepicker(
             {
-                startDate: $(this).data('start'),
-                endDate: $(this).data('end'),
+                //startDate: $(this).data('start'),
+                //endDate: $(this).data('end'),
                 opens: 'right',
                 locale: {
                     format
@@ -36,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
         singleDatePicker: true,
         opens: 'right',
         locale: {
-            format: 'YYYY/MM/DD'
+            format
         }
     });
 
