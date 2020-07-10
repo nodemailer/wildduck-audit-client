@@ -15,8 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const input = $(this);
         $(this).daterangepicker(
             {
-                //startDate: $(this).data('start'),
-                //endDate: $(this).data('end'),
+                startDate: $(this).data('start'),
+                endDate: $(this).data('end'),
                 opens: 'right',
                 locale: {
                     format
