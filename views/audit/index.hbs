@@ -97,19 +97,23 @@
 
                 <td class="email-table-cell email-from-cell">
                     <a href="{{url}}" class="email-list-a">
-                        {{display.from}}
+                        {{#each display.from}}
+                        <span title="{{name}} &lt;{{address}}&gt;">{{address}}</span>
+                        {{/each}}
                     </a>
                 </td>
 
                 <td class="email-table-cell email-to-cell">
                     <a href="{{url}}" class="email-list-a">
-                        {{display.to}}
+                        {{#each display.to}}
+                        <span title="{{name}} &lt;{{address}}&gt;">{{address}}</span>
+                        {{/each}}
                     </a>
                 </td>
 
                 <td class="email-table-cell email-subject-cell">
 
-                    <a href="{{url}}" class="email-list-a" title="{{display.subject}}" style="position: relative;">
+                    <a href="{{url}}" class="email-list-a" title="{{display.subject}}">
                         <small class="text-muted" style="display: inline-block;width: 20px;">
                             {{#if display.attachments}}
                             <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-paperclip"
@@ -120,7 +124,15 @@
                             {{/if}}
                         </small>
 
-                        {{display.subject}}</a>
+                        {{display.subject}}
+                        <span class="text-muted">
+                            {{#if display.subject}}
+                            –
+                            {{/if}}
+                            {{metadata.msgid}}
+                        </span>
+
+                    </a>
                 </td>
 
                 <td class="email-table-cell text-right email-date-cell">

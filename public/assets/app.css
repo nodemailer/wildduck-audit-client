@@ -47,7 +47,7 @@ a.fullcell {
     overflow: hidden;
     text-overflow: ellipsis;
     cursor: pointer;
-    font-size: 0.9em;
+    font-size: 0.83em;
 }
 
 .email-table .email-check-row {
@@ -57,11 +57,11 @@ a.fullcell {
 }
 
 .email-table .email-from-cell {
-    width: 13ch;
+    width: 18ch;
 }
 
 .email-table .email-to-cell {
-    width: 17ch;
+    width: 24ch;
 }
 
 .email-table .email-date-cell {
