@@ -81,3 +81,17 @@ td.email-table-cell {
     margin: 0;
     padding: 0.3rem;
 }
+
+.hover-label {
+    display: inline-block;
+    border-radius: 3px;
+}
+
+.hover-label:hover {
+    background: #eaeaea;
+}
+
+.info-label-text {
+    display: inline-block;
+    cursor: default;
+}

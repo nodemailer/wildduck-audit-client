@@ -56,6 +56,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    for (let elm of document.querySelectorAll('.fulldate')) {
+        elm.textContent = moment(elm.title).format('LLL');
+    }
+
     $(function () {
         $('[data-toggle="tooltip"]').tooltip();
     });
