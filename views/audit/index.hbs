@@ -130,7 +130,9 @@
                 </svg> Download
             </button>
             <div class="dropdown-menu">
-                <a class="dropdown-item disabled toggle-selected-link" href="#" tabindex="-1">Selected</a>
+                <a class="dropdown-item toggle-selected-link disabled" href="#" tabindex="-1">Selected</a>
+                <a class="dropdown-item matching-selected-link {{#unless values.s}}disabled{{/unless}}" href="#"
+                    {{#unless values.s}}tabindex="-1" {{/unless}}>Matching</a>
                 <a class="dropdown-item all-selected-link" href="#">All</a>
             </div>
         </div>
@@ -285,6 +287,13 @@
                 <form action="/audit/download" id="download-form" method="post">
                     {{ csrf_token }}
                     <input type="hidden" id="messagelist" name="messages" value="" />
+
+                    <input type="hidden" name="start" value="{{values.start}}">
+                    <input type="hidden" name="end" value="{{values.end}}">
+                    <input type="hidden" name="from" value="{{ values.from }}">
+                    <input type="hidden" name="to" value="{{ values.to }}">
+                    <input type="hidden" name="subject" value="{{ values.subject }}">
+
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                     <button type="submit" class="btn btn-primary"><svg width="1em" height="1em" viewBox="0 0 16 16"
                             class="bi bi-cloud-download" fill="currentColor" xmlns="http://www.w3.org/2000/svg">

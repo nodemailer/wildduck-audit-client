@@ -110,6 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let checkboxList = Array.from(document.querySelectorAll('.checkMessage'));
         let toggleSelectedLinks = Array.from(document.querySelectorAll('.toggle-selected-link'));
         let allSelectedLinks = Array.from(document.querySelectorAll('.all-selected-link'));
+        let matchingSelectedLinks = Array.from(document.querySelectorAll('.matching-selected-link'));
 
         let checkState = () => {
             let someSelected = false;
@@ -190,6 +191,15 @@ document.addEventListener('DOMContentLoaded', () => {
         allSelectedLinks.forEach(link => {
             link.addEventListener('click', e => {
                 document.getElementById('messagelist').value = 'all';
+                $('#downloadMessagesModal').modal('show');
+                // ignore click
+                e.preventDefault();
+            });
+        });
+
+        matchingSelectedLinks.forEach(link => {
+            link.addEventListener('click', e => {
+                document.getElementById('messagelist').value = 'matching';
                 $('#downloadMessagesModal').modal('show');
                 // ignore click
                 e.preventDefault();

@@ -358,7 +358,13 @@ router.post(
     '/download',
     asyncifyRequest(async (req, res) => {
         let paramsSchema = Joi.object({
-            messages: Joi.string().empty('').required().label('Message listing')
+            messages: Joi.string().empty('').required().label('Message listing'),
+
+            subject: Joi.string().empty('').max(256).example('Hello world').label('Subject').description('Message subject'),
+            from: Joi.string().empty('').max(256).example('John Doe').label('Sender').description('Sender name or address'),
+            to: Joi.string().empty('').max(256).example('John Doe').label('Recipient').description('Recipient name or address'),
+            start: Joi.date().empty('').example('2020/01/02').label('Start date').description('Start date'),
+            end: Joi.date().empty('').greater(Joi.ref('start')).example('2020/01/02').label('End date').description('End date')
         });
 
         const validationResult = paramsSchema.validate(req.body, {
@@ -377,7 +383,73 @@ router.post(
             'metadata.audit': new ObjectID(req.user.audit)
         };
 
-        if (values.messages !== 'all') {
+        if (values.messages === 'matching') {
+            query.$and = [];
+
+            if (values.subject) {
+                let regex = values.subject.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+                query.$and.push({
+                    'metadata.subject': {
+                        $regex: regex,
+                        $options: 'i'
+                    }
+                });
+            }
+
+            ['from', 'to'].forEach(key => {
+                if (values[key]) {
+                    let regex = values[key].replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+                    let type;
+                    switch (key) {
+                        case 'from':
+                            type = key;
+                            break;
+                        case 'to':
+                            type = { $in: ['to', 'cc', 'bcc'] };
+                            break;
+                        default:
+                            return;
+                    }
+                    query.$and.push({
+                        [`metadata.addresses`]: {
+                            $elemMatch: {
+                                type,
+                                $or: [
+                                    {
+                                        name: {
+                                            $regex: regex,
+                                            $options: 'i'
+                                        }
+                                    },
+                                    {
+                                        address: {
+                                            $regex: regex,
+                                            $options: 'i'
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    });
+                }
+            });
+
+            if (values.start) {
+                query.$and.push({
+                    'metadata.date': {
+                        $gte: moment(values.start).toDate()
+                    }
+                });
+            }
+
+            if (values.end) {
+                query.$and.push({
+                    'metadata.date': {
+                        $lte: moment(values.end).toDate()
+                    }
+                });
+            }
+        } else if (values.messages !== 'all') {
             try {
                 let list = JSON.parse(values.messages);
                 const listSchema = Joi.array().items(Joi.string().hex().length(24)).min(1).required();
