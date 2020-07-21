@@ -216,8 +216,8 @@
                 <td class="email-table-cell email-from-cell">
                     <a href="{{url}}" class="email-list-a">
                         {{#if display.fromShort}}
-                        <span
-                            title="{{display.fromShort.name}} &lt;{{display.fromShort.address}}&gt;">{{display.fromShort.address}}</span>
+                        <span title="{{display.fromShort.name}} &lt;{{display.fromShort.address}}&gt;"
+                            data-toggle="tooltip" data-placement="left">{{display.fromShort.address}}</span>
                         {{/if}}
                     </a>
                 </td>
@@ -225,8 +225,8 @@
                 <td class="email-table-cell email-to-cell">
                     <a href="{{url}}" class="email-list-a">
                         {{#if display.toShort}}
-                        <span
-                            title="{{display.toShort.name}} &lt;{{display.toShort.address}}&gt;">{{display.toShort.display}}</span>
+                        <span title="{{display.toShort.name}} &lt;{{display.toShort.address}}&gt;" data-toggle="tooltip"
+                            data-placement="left">{{display.toShort.display}}</span>
                         {{/if}}
                     </a>
                 </td>
@@ -257,7 +257,8 @@
 
                 <td class="email-table-cell text-right email-date-cell">
                     <a href="{{url}}" class="email-list-a">
-                        <span class="datetimestr" title="{{display.date}}"></span>
+                        <span class="datetimestr" title="{{display.date}}" data-toggle="tooltip"
+                            data-placement="left"></span>
                     </a>
                 </td>
             </tr>
