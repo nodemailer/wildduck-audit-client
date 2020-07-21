@@ -85,6 +85,7 @@ td.email-table-cell {
 .hover-label {
     display: inline-block;
     border-radius: 3px;
+    cursor: default;
 }
 
 .hover-label:hover {

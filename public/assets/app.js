@@ -104,4 +104,102 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 100);
         });
     }
+
+    let checkAll = document.getElementById('checkAll');
+    if (checkAll) {
+        let checkboxList = Array.from(document.querySelectorAll('.checkMessage'));
+        let toggleSelectedLinks = Array.from(document.querySelectorAll('.toggle-selected-link'));
+        let allSelectedLinks = Array.from(document.querySelectorAll('.all-selected-link'));
+
+        let checkState = () => {
+            let someSelected = false;
+            let allSelected = false;
+
+            let checkedMessages = [];
+            if (checkboxList.length) {
+                allSelected = true;
+
+                checkboxList.forEach(cb => {
+                    if (cb.checked) {
+                        someSelected = true;
+
+                        checkedMessages.push(cb.dataset.message);
+                    } else {
+                        allSelected = false;
+                    }
+                });
+            }
+
+            if (someSelected) {
+                toggleSelectedLinks.forEach(link => {
+                    link.removeAttribute('tabindex');
+                    link.classList.remove('disabled');
+                });
+            } else {
+                toggleSelectedLinks.forEach(link => {
+                    link.setAttribute('tabindex', '-1');
+                    link.classList.add('disabled');
+                });
+            }
+
+            if (allSelected) {
+                checkAll.checked = true;
+            } else {
+                checkAll.checked = false;
+            }
+
+            return {
+                someSelected,
+                allSelected,
+                checkedMessages
+            };
+        };
+
+        let toggleAll = () => {
+            checkboxList.forEach(cb => {
+                cb.checked = checkAll.checked;
+            });
+            checkState();
+        };
+
+        checkAll.addEventListener('click', () => toggleAll());
+        checkAll.addEventListener('change', () => toggleAll());
+
+        checkboxList.forEach(cb => {
+            cb.addEventListener('click', () => checkState());
+            cb.addEventListener('change', () => checkState());
+        });
+
+        if (!checkboxList.length) {
+            checkAll.disabled = true;
+            checkAll.checked = false;
+        }
+
+        toggleSelectedLinks.forEach(link => {
+            link.addEventListener('click', e => {
+                let { someSelected, checkedMessages } = checkState();
+                if (someSelected) {
+                    document.getElementById('messagelist').value = JSON.stringify(checkedMessages);
+                    $('#downloadMessagesModal').modal('show');
+                }
+                // ignore click
+                e.preventDefault();
+            });
+        });
+
+        allSelectedLinks.forEach(link => {
+            link.addEventListener('click', e => {
+                document.getElementById('messagelist').value = 'all';
+                $('#downloadMessagesModal').modal('show');
+                // ignore click
+                e.preventDefault();
+            });
+        });
+
+        document.getElementById('download-form').addEventListener('submit', () => {
+            $('#downloadMessagesModal').modal('hide');
+        });
+
+        checkState();
+    }
 });
