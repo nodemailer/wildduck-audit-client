@@ -10,6 +10,7 @@ const Joi = require('@hapi/joi');
 const { ObjectID } = require('mongodb');
 const ZipStream = require('zip-stream');
 const util = require('util');
+const { addToStream } = require('../../lib/stream');
 
 let auditListingSchema = Joi.object({
     p: Joi.number()
@@ -312,6 +313,23 @@ router.get(
             });
         }
 
+        await addToStream(
+            req.user._id,
+            req.user.audit,
+            'view_message',
+            Object.assign(
+                {
+                    owner: {
+                        _id: req.user._id,
+                        username: req.user.username,
+                        name: req.user.name
+                    },
+                    ip: req.ip
+                },
+                values
+            )
+        );
+
         res.render('audit/message', data);
     })
 );
@@ -345,6 +363,23 @@ router.get(
             err.status = 404;
             throw err;
         }
+
+        await addToStream(
+            req.user._id,
+            req.user.audit,
+            'fetch_message',
+            Object.assign(
+                {
+                    owner: {
+                        _id: req.user._id,
+                        username: req.user.username,
+                        name: req.user.name
+                    },
+                    ip: req.ip
+                },
+                values
+            )
+        );
 
         res.set('Content-Type', 'message/rfc822');
         res.setHeader('Content-disposition', `attachment; filename=${formatFilename(messageData)}`);
@@ -464,6 +499,23 @@ router.post(
                 return res.redirect('/audit');
             }
         }
+
+        await addToStream(
+            req.user._id,
+            req.user.audit,
+            'fetch_messages',
+            Object.assign(
+                {
+                    owner: {
+                        _id: req.user._id,
+                        username: req.user.username,
+                        name: req.user.name
+                    },
+                    ip: req.ip
+                },
+                values
+            )
+        );
 
         const archive = new ZipStream(); // OR new packer(options)
         const addEntry = util.promisify(archive.entry.bind(archive));
