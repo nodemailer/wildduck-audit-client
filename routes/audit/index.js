@@ -534,7 +534,7 @@ router.post(
             });
 
             const looper = async () => {
-                const cursor = await db.client.collection('audit.files').find(query, { projection: { _id: true } });
+                const cursor = await db.client.collection('audit.files').find(query, { noCursorTimeout: true, projection: { _id: true } });
                 let messageData;
                 while ((messageData = await cursor.next())) {
                     if (errored) {
