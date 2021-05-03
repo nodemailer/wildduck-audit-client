@@ -30,11 +30,8 @@ let auditListingSchema = Joi.object({
     end: Joi.date().empty('').greater(Joi.ref('start')).example('2020/01/02').label('End date').description('End date')
 });
 
-const formatFilename = messageData => {
-    return (
-        moment((messageData && messageData.metadata && messageData.metadata.date) || new Date()).format('YYYY-MM-DD_HH-mm-ss') + '_' + messageData._id + '.eml'
-    );
-};
+const formatFilename = messageData =>
+    moment((messageData && messageData.metadata && messageData.metadata.date) || new Date()).format('YYYY-MM-DD_HH-mm-ss') + '_' + messageData._id + '.eml';
 
 router.get(
     '/',
@@ -290,12 +287,10 @@ router.get(
             data.info.push({
                 isAddress: true,
                 title: 'MAIL FROM',
-                addresses: mailFrom.map((address, i) => {
-                    return {
-                        address,
-                        last: i === mailFrom.length - 1
-                    };
-                })
+                addresses: mailFrom.map((address, i) => ({
+                    address,
+                    last: i === mailFrom.length - 1
+                }))
             });
         }
 
@@ -304,12 +299,10 @@ router.get(
             data.info.push({
                 isAddress: true,
                 title: 'RCPT TO',
-                addresses: rcptTo.map((address, i) => {
-                    return {
-                        address,
-                        last: i === rcptTo.length - 1
-                    };
-                })
+                addresses: rcptTo.map((address, i) => ({
+                    address,
+                    last: i === rcptTo.length - 1
+                }))
             });
         }
 
@@ -534,7 +527,7 @@ router.post(
             });
 
             const looper = async () => {
-                const cursor = await db.client.collection('audit.files').find(query, { noCursorTimeout: true, projection: { _id: true } });
+                const cursor = await db.gridfs.collection('audit.files').find(query, { noCursorTimeout: true, projection: { _id: true } });
                 let messageData;
                 while ((messageData = await cursor.next())) {
                     if (errored) {
