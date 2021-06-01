@@ -33,8 +33,71 @@ let auditListingSchema = Joi.object({
 const formatFilename = messageData =>
     moment((messageData && messageData.metadata && messageData.metadata.date) || new Date()).format('YYYY-MM-DD_HH-mm-ss') + '_' + messageData._id + '.eml';
 
+const loadAuditAsync = async (req, res) => {
+    if (!req.params.audit) {
+        return;
+    }
+
+    if (!/^[0-9a-f]{24}$/.test(req.params.audit)) {
+        let err = new Error('Invalid audit ID');
+        err.status = 400;
+        throw err;
+    }
+
+    switch (req.user.level) {
+        case 'group': {
+            let auditData = await audits.get(req.params.audit);
+            if (auditData && auditData.meta && auditData.meta.group.equals(req.user.audit)) {
+                req.auditData = await audits.get(req.params.audit);
+            }
+            break;
+        }
+
+        case 'audit':
+        default:
+            if (!req.user.audit || req.params.audit !== req.user.audit.toString()) {
+                let err = new Error('Can not access requested data');
+                err.status = 503;
+                throw err;
+            }
+            req.auditData = await audits.get(req.params.audit);
+            break;
+    }
+
+    if (!req.auditData) {
+        let err = new Error('Requested audit was not found');
+        err.status = 404;
+        throw err;
+    }
+
+    res.locals.audit = req.auditData;
+};
+
+const loadAudit = (req, res, next) => {
+    loadAuditAsync(req, res)
+        .then(() => {
+            next();
+        })
+        .catch(err => next(err));
+};
+
 router.get(
     '/',
+    asyncifyRequest(async (req, res) => {
+        const data = {
+            mainMenuAudit: true,
+            layout: 'layouts/main'
+        };
+
+        data.auditList = await audits.listAudits(req.user.audit, req.user.level);
+
+        res.render('audits/index', data);
+    })
+);
+
+router.get(
+    '/audit/:audit',
+    loadAudit,
     asyncifyRequest(async (req, res) => {
         const validationResult = auditListingSchema.validate(req.query, {
             stripUnknown: true,
@@ -45,25 +108,17 @@ router.get(
         const values = validationResult && validationResult.value;
         const page = values && !validationResult.error ? values.p : 0;
 
-        const auditData = await audits.get(req.user.audit);
-        if (!auditData) {
-            let err = new Error('Requested audit was not found');
-            err.status = 404;
-            throw err;
-        }
-
         const data = {
             mainMenuAudit: true,
-            audit: auditData,
             layout: 'layouts/main'
         };
 
         const now = new Date();
-        values.start = values.start || moment(auditData.start || now);
-        values.end = values.end || moment(auditData.end || now);
+        values.start = values.start || moment(req.auditData.start || now);
+        values.end = values.end || moment(req.auditData.end || now);
 
         let query = {
-            'metadata.audit': auditData._id,
+            'metadata.audit': req.auditData._id,
             $and: []
         };
 
@@ -131,14 +186,14 @@ router.get(
             });
         }
 
-        data.listing = await audits.listMessages(auditData._id, query, page);
+        data.listing = await audits.listMessages(req.auditData._id, query, page);
         data.values = Object.assign(Object.assign({}, values), {
             start: moment(values.start).format('YYYY/MM/DD'),
             end: moment(values.end).format('YYYY/MM/DD')
         });
 
         data.listing.data.forEach(entry => {
-            let url = new URL(`audit/message/${entry._id}`, 'http://localhost');
+            let url = new URL(`/audits/audit/${values.audit}/message/${entry._id}`, 'http://localhost');
 
             // keep search info for backlinks
             ['from', 'to', 'subject', 'start', 'end', 's', 'p'].forEach(key => {
@@ -151,7 +206,7 @@ router.get(
         });
 
         if (data.listing.page < data.listing.pages) {
-            let url = new URL('audit', 'http://localhost');
+            let url = new URL(`/audits/audit/${values.audit}`, 'http://localhost');
             url.searchParams.append('p', data.listing.page + 1);
 
             ['from', 'to', 'subject', 'start', 'end', 's'].forEach(key => {
@@ -164,7 +219,7 @@ router.get(
         }
 
         if (data.listing.page > 1) {
-            let url = new URL('audit', 'http://localhost');
+            let url = new URL(`/audits/audit/${values.audit}`, 'http://localhost');
             url.searchParams.append('p', data.listing.page - 1);
 
             ['from', 'to', 'subject', 'start', 'end', 's'].forEach(key => {
@@ -176,14 +231,16 @@ router.get(
             data.previousPage = url.pathname + (url.search ? url.search : '');
         }
 
-        res.render('audit/index', data);
+        res.render('audits/audit', data);
     })
 );
 
 router.get(
-    '/message/:id',
+    '/audit/:audit/message/:id',
+    loadAudit,
     asyncifyRequest(async (req, res) => {
         let paramsSchema = Joi.object({
+            audit: Joi.string().empty('').hex().length(24).required().label('Audit ID'),
             id: Joi.string().empty('').hex().length(24).required().label('User ID')
         })
             // needed for backlink
@@ -209,14 +266,14 @@ router.get(
             layout: 'layouts/main'
         };
 
-        data.messageData = await audits.getMessage(req.user.audit, values.id);
+        data.messageData = await audits.getMessage(req.auditData._id, values.id);
         if (!data.messageData) {
             let err = new Error('Requested message was not found');
             err.status = 404;
             throw err;
         }
 
-        let url = new URL('audit', 'http://localhost');
+        let url = new URL(`/audits/audit/${values.audit}`, 'http://localhost');
         ['from', 'to', 'subject', 'start', 'end', 's', 'p'].forEach(key => {
             if (values[key]) {
                 if (['start', 'end'].includes(key)) {
@@ -308,7 +365,7 @@ router.get(
 
         await addToStream(
             req.user._id,
-            req.user.audit,
+            req.audit,
             'view_message',
             Object.assign(
                 {
@@ -323,14 +380,16 @@ router.get(
             )
         );
 
-        res.render('audit/message', data);
+        res.render('audits/message', data);
     })
 );
 
 router.get(
-    '/message/:id/download',
+    '/audit/:audit/message/:id/download',
+    loadAudit,
     asyncifyRequest(async (req, res) => {
         let paramsSchema = Joi.object({
+            audit: Joi.string().empty('').hex().length(24).required().label('Audit ID'),
             id: Joi.string().empty('').hex().length(24).required().label('User ID')
         })
             // needed for backlink
@@ -350,7 +409,7 @@ router.get(
 
         const values = (validationResult && validationResult.value) || {};
 
-        const messageData = await audits.getMessage(req.user.audit, values.id);
+        const messageData = await audits.getMessage(req.audit, values.id);
         if (!messageData) {
             let err = new Error('Requested message was not found');
             err.status = 404;
@@ -359,7 +418,7 @@ router.get(
 
         await addToStream(
             req.user._id,
-            req.user.audit,
+            req.audit,
             'fetch_message',
             Object.assign(
                 {
@@ -383,9 +442,12 @@ router.get(
 );
 
 router.post(
-    '/download',
+    '/audit/:audit/download',
+    loadAudit,
     asyncifyRequest(async (req, res) => {
         let paramsSchema = Joi.object({
+            audit: Joi.string().empty('').hex().length(24).required().label('Audit ID'),
+
             messages: Joi.string().empty('').required().label('Message listing'),
 
             subject: Joi.string().empty('').max(256).example('Hello world').label('Subject').description('Message subject'),
@@ -403,12 +465,12 @@ router.post(
 
         if (validationResult.error) {
             req.flash('danger', 'Invalid message list provided');
-            return res.redirect('/audit');
+            return res.redirect(`/audits`);
         }
 
         const values = (validationResult && validationResult.value) || {};
         const query = {
-            'metadata.audit': new ObjectID(req.user.audit)
+            'metadata.audit': new ObjectID(req.audit)
         };
 
         if (values.messages === 'matching') {
@@ -484,18 +546,18 @@ router.post(
                 const listResult = listSchema.validate(list);
                 if (listResult.error) {
                     req.flash('danger', 'Invalid message list provided');
-                    return res.redirect('/audit');
+                    return res.redirect(`/audits/audit/${values.audit}`);
                 }
                 query._id = { $in: list.map(entry => new ObjectID(entry)) };
             } catch (err) {
                 req.flash('danger', 'Invalid message list provided');
-                return res.redirect('/audit');
+                return res.redirect(`/audits/audit/${values.audit}`);
             }
         }
 
         await addToStream(
             req.user._id,
-            req.user.audit,
+            req.audit,
             'fetch_messages',
             Object.assign(
                 {

@@ -5,8 +5,36 @@ const router = new express.Router();
 const Joi = require('@hapi/joi');
 const { asyncifyRequest, validationErrors } = require('../lib/tools');
 const { requireLogin, login, logout } = require('../lib/passport');
+const db = require('../lib/db');
 
-router.use('/audit', requireLogin, require('./audit/index'));
+router.use(
+    '/audits',
+    requireLogin,
+    (req, res, next) => {
+        if (req.user.level !== 'group') {
+            return next();
+        }
+
+        db.client.collection('auditgroups').findOne({ _id: req.user.audit, deleted: false, expires: { $gt: new Date() } }, (err, groupData) => {
+            if (err) {
+                return next(err);
+            }
+
+            if (!groupData) {
+                let err = new Error('Requested audit was not found');
+                err.status = 404;
+                return next(err);
+            }
+
+            req.group = groupData;
+
+            res.locals.auditName = groupData.name;
+
+            next();
+        });
+    },
+    require('./audits/index')
+);
 
 router.get(
     '/',
