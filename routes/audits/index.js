@@ -99,7 +99,13 @@ router.get(
     '/audit/:audit',
     loadAudit,
     asyncifyRequest(async (req, res) => {
-        const validationResult = auditListingSchema.validate(Object.assign(Object.assign({}, req.params || {}), req.query), {
+        let paramsSchema = Joi.object({
+            audit: Joi.string().empty('').hex().length(24).required().label('Audit ID')
+        })
+            // needed for backlink
+            .concat(auditListingSchema);
+
+        const validationResult = paramsSchema.validate(Object.assign(Object.assign({}, req.params || {}), req.query), {
             stripUnknown: true,
             abortEarly: false,
             convert: true
