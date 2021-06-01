@@ -263,7 +263,8 @@ router.get(
         const data = {
             title: 'subject',
             mainMenuAudit: true,
-            layout: 'layouts/main'
+            layout: 'layouts/main',
+            audit: req.auditData
         };
 
         data.messageData = await audits.getMessage(req.auditData._id, values.id);
