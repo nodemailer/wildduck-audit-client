@@ -71,6 +71,7 @@ const loadAuditAsync = async (req, res) => {
     }
 
     res.locals.audit = req.auditData;
+    req.audit = req.auditData._id;
 };
 
 const loadAudit = (req, res, next) => {
@@ -464,7 +465,7 @@ router.post(
             end: Joi.date().empty('').greater(Joi.ref('start')).example('2020/01/02').label('End date').description('End date')
         });
 
-        const validationResult = paramsSchema.validate(req.body, {
+        const validationResult = paramsSchema.validate(Object.assign(Object.assign({}, req.params || {}), req.body), {
             stripUnknown: true,
             abortEarly: false,
             convert: true
