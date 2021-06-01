@@ -99,7 +99,7 @@ router.get(
     '/audit/:audit',
     loadAudit,
     asyncifyRequest(async (req, res) => {
-        const validationResult = auditListingSchema.validate(req.query, {
+        const validationResult = auditListingSchema.validate(Object.assign(Object.assign({}, req.params || {}), req.query), {
             stripUnknown: true,
             abortEarly: false,
             convert: true
