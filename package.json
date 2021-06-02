@@ -29,6 +29,7 @@
         "express": "4.17.1",
         "express-session": "1.17.2",
         "hbs": "4.1.2",
+        "humanize": "^0.0.9",
         "ioredis": "4.27.3",
         "moment": "2.29.1",
         "mongodb": "3.6.9",

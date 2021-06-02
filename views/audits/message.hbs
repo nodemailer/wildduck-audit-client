@@ -1,3 +1,11 @@
+<nav aria-label='breadcrumb'>
+    <ol class='breadcrumb'>
+        <li class='breadcrumb-item'><a href='/audits'>Accounts</a></li>
+        <li class='breadcrumb-item'><a href='/audits/audit/{{audit._id}}'>{{audit.display.address}}</a></li>
+        <li class='breadcrumb-item active' aria-current='page'>{{messageData._id}}</li>
+    </ol>
+</nav>
+
 <div class="btn-toolbar mb-3" role="toolbar" aria-label="Message actions">
     <div class="btn-group mr-2" role="group" aria-label="First group">
         <a class="btn btn-sm btn-primary" href="{{auditUrl}}"><svg width="1em" height="1em" viewBox="0 0 16 16"
@@ -48,7 +56,8 @@
                     {{/if}}
 
                     {{#if isText}}
-                    <span class="">{{text}}</span>
+                    <span class="" {{#if tooltip}} title="{{tooltip}}" data-toggle="tooltip" data-placement="top"
+                        {{/if}}>{{text}}</span>
                     {{/if}}
 
                     {{#if isDate}}

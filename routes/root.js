@@ -39,6 +39,10 @@ router.use(
 router.get(
     '/',
     asyncifyRequest(async (req, res) => {
+        if (req.user) {
+            return res.redirect('/audits');
+        }
+
         res.render('root/index', {
             msg: 'Hello world root',
             layout: 'layouts/main'
@@ -51,7 +55,7 @@ router.get(
     asyncifyRequest(async (req, res) => {
         if (req.user) {
             // already logged in
-            return res.redirect('/');
+            return res.redirect('/audits');
         }
         res.render('root/login', {
             mainMenuLogin: true,
