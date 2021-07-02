@@ -9,6 +9,15 @@
     name = "Audit System"
     clientUrl = "https://audit.wildduck.email/"
 
+    [app.pgp]
+        version = "WildDuck Audit v1.0.0"
+        comment = "https://wildduck.email"
+        [app.pgp.sign]
+            key = "./config/sign.pem"
+            password = "08Sgipx582LZFNxjMQVRDH5kf1l"
+    [app.hash]
+        algo = "sha256"
+
 [web]
     enabled = true
     workers = 2

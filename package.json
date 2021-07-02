@@ -33,6 +33,7 @@
         "ioredis": "4.27.3",
         "moment": "2.29.1",
         "mongodb": "3.6.9",
+        "openpgp": "^5.0.0-3",
         "passport": "0.4.1",
         "passport-local": "1.0.0",
         "pino": "6.11.3",

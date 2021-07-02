@@ -1,9 +1,10 @@
 'use strict';
 
+const config = require('wild-config');
 const moment = require('moment');
 const express = require('express');
 const router = new express.Router();
-const { asyncifyRequest } = require('../../lib/tools');
+const { asyncifyRequest, signFinger, signPubKey } = require('../../lib/tools');
 const audits = require('../../lib/audits');
 const db = require('../../lib/db');
 const Joi = require('@hapi/joi');
@@ -12,6 +13,7 @@ const ZipStream = require('zip-stream');
 const util = require('util');
 const { addToStream } = require('../../lib/stream');
 const humanize = require('humanize');
+const Hasher = require('../../lib/hasher');
 
 let auditListingSchema = Joi.object({
     p: Joi.number()
@@ -32,7 +34,11 @@ let auditListingSchema = Joi.object({
 });
 
 const formatFilename = messageData =>
-    moment((messageData && messageData.metadata && messageData.metadata.date) || new Date()).format('YYYY-MM-DD_HH-mm-ss') + '_' + messageData._id + '.eml';
+    'messages-' +
+    moment((messageData && messageData.metadata && messageData.metadata.date) || new Date()).format('YYYY-MM-DD_HH-mm-ss') +
+    '_' +
+    messageData._id +
+    '.eml';
 
 const loadAuditAsync = async (req, res) => {
     if (!req.params.audit) {
@@ -94,6 +100,15 @@ router.get(
         data.auditList = await audits.listAudits(req.user.audit, req.user.level);
 
         res.render('audits/index', data);
+    })
+);
+
+router.get(
+    '/signPubKey/:key',
+    asyncifyRequest(async (req, res) => {
+        res.set('Content-Type', 'text/plain');
+        res.setHeader('Content-disposition', `attachment; filename=${signFinger()}.asc`);
+        res.send(Buffer.from(signPubKey()));
     })
 );
 
@@ -239,7 +254,103 @@ router.get(
             data.previousPage = url.pathname + (url.search ? url.search : '');
         }
 
+        if (values.s) {
+            data.searchTab = true;
+        } else {
+            data.infoTab = true;
+        }
+
         res.render('audits/audit', data);
+    })
+);
+
+router.get(
+    '/audit/:audit/logs',
+    loadAudit,
+    asyncifyRequest(async (req, res) => {
+        let paramsSchema = Joi.object({
+            audit: Joi.string().empty('').hex().length(24).required().label('Audit ID'),
+            p: Joi.number()
+                .empty('')
+                .min(1)
+                .max(64 * 1024)
+                .default(1)
+                .example(1)
+                .label('Page Number')
+        });
+
+        const validationResult = paramsSchema.validate(Object.assign(Object.assign({}, req.params || {}), req.query), {
+            stripUnknown: true,
+            abortEarly: false,
+            convert: true
+        });
+
+        const values = validationResult && validationResult.value;
+        const page = values && !validationResult.error ? values.p : 0;
+
+        const data = {
+            mainMenuAudit: true,
+            layout: 'layouts/main',
+            logsTab: true,
+            signFinger: signFinger()
+        };
+
+        data.listing = await audits.listLogs(req.auditData._id, page);
+
+        if (data.listing.page < data.listing.pages) {
+            let url = new URL(`/audits/audit/${values.audit}/logs`, 'http://localhost');
+            url.searchParams.append('p', data.listing.page + 1);
+
+            data.nextPage = url.pathname + (url.search ? url.search : '');
+        }
+
+        if (data.listing.page > 1) {
+            let url = new URL(`/audits/audit/${values.audit}/logs`, 'http://localhost');
+            url.searchParams.append('p', data.listing.page - 1);
+
+            data.previousPage = url.pathname + (url.search ? url.search : '');
+        }
+
+        res.render('audits/logs', data);
+    })
+);
+
+router.get(
+    '/audit/:audit/logs/:id/download',
+    loadAudit,
+    asyncifyRequest(async (req, res) => {
+        let paramsSchema = Joi.object({
+            audit: Joi.string().empty('').hex().length(24).required().label('Audit ID'),
+            id: Joi.string().empty('').hex().length(24).required().label('Log entry ID')
+        });
+
+        const validationResult = paramsSchema.validate(Object.assign(Object.assign({}, req.params || {}), req.query), {
+            stripUnknown: true,
+            abortEarly: false,
+            convert: true
+        });
+
+        if (validationResult.error) {
+            let err = new Error('Invalid message ID provided');
+            err.status = 422;
+            throw err;
+        }
+
+        const values = (validationResult && validationResult.value) || {};
+
+        const logData = await audits.getSignedLog(req.audit, values.id);
+        if (!logData) {
+            let err = new Error('Requested log entry was not found');
+            err.status = 404;
+            throw err;
+        }
+
+        const fileName = logData.metadata.fileName + '.asc';
+
+        res.set('Content-Type', 'message/rfc822');
+        res.setHeader('Content-disposition', `attachment; filename=${fileName}`);
+
+        res.end(logData.signed);
     })
 );
 
@@ -433,28 +544,42 @@ router.get(
             throw err;
         }
 
-        await addToStream(
-            req.user._id,
-            req.audit,
-            'fetch_message',
-            Object.assign(
-                {
+        const hasher = new Hasher(config.app.hash.algo);
+
+        const curtime = new Date();
+
+        const fileName = formatFilename(messageData);
+
+        hasher.once('end', () => {
+            addToStream(
+                req.user._id,
+                req.audit,
+                'fetch_messages',
+                Object.assign({}, values, {
+                    type: 'single',
+                    fileName,
+                    algo: hasher.algo,
+                    hash: hasher.hash,
+                    bytes: hasher.bytes,
+                    messageCount: 1,
+                    curtime,
                     owner: {
                         _id: req.user._id,
                         username: req.user.username,
                         name: req.user.name
                     },
                     ip: req.ip
-                },
-                values
-            )
-        );
+                })
+            ).catch(err => {
+                req.log.error({ msg: 'Stream error', err });
+            });
+        });
 
         res.set('Content-Type', 'message/rfc822');
-        res.setHeader('Content-disposition', `attachment; filename=${formatFilename(messageData)}`);
+        res.setHeader('Content-disposition', `attachment; filename=${fileName}`);
 
         const stream = await audits.stream(values.id);
-        stream.pipe(res);
+        stream.pipe(hasher).pipe(res);
     })
 );
 
@@ -572,30 +697,48 @@ router.post(
             }
         }
 
-        await addToStream(
-            req.user._id,
-            req.audit,
-            'fetch_messages',
-            Object.assign(
-                {
+        const archive = new ZipStream(); // OR new packer(options)
+        const addEntry = util.promisify(archive.entry.bind(archive));
+
+        const hasher = new Hasher(config.app.hash.algo);
+
+        const curtime = new Date();
+        const fileName = `messages-${curtime
+            .toISOString()
+            .substr(0, 19)
+            .replace(/[^0-9]+/g, '-')}_query.zip`;
+
+        let messageCount = 0;
+
+        res.set('Content-Type', 'application/zip');
+        res.setHeader('Content-disposition', `attachment; filename=${fileName}`);
+
+        archive.pipe(hasher).pipe(res);
+
+        hasher.once('end', () => {
+            addToStream(
+                req.user._id,
+                req.audit,
+                'fetch_messages',
+                Object.assign({}, values, {
+                    type: 'query',
+                    fileName,
+                    algo: hasher.algo,
+                    hash: hasher.hash,
+                    bytes: hasher.bytes,
+                    messageCount,
+                    curtime,
                     owner: {
                         _id: req.user._id,
                         username: req.user.username,
                         name: req.user.name
                     },
                     ip: req.ip
-                },
-                values
-            )
-        );
-
-        const archive = new ZipStream(); // OR new packer(options)
-        const addEntry = util.promisify(archive.entry.bind(archive));
-
-        res.set('Content-Type', 'application/zip');
-        res.setHeader('Content-disposition', `attachment; filename=messages.zip`);
-
-        archive.pipe(res);
+                })
+            ).catch(err => {
+                req.log.error({ msg: 'Stream error', err });
+            });
+        });
 
         return new Promise((resolve, reject) => {
             let errored = false;
@@ -615,6 +758,7 @@ router.post(
                     try {
                         const stream = await audits.stream(messageData._id);
                         await addEntry(stream, { name: formatFilename(messageData) });
+                        messageCount++;
                     } catch (err) {
                         req.log.error({ msg: 'Failed to add file to archive', err });
                     }
