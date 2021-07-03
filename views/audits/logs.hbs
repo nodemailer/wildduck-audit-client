@@ -92,11 +92,12 @@
 
     <div class="table-responsive">
         <table class="table table-hover table-sm">
+            <caption>This table lists information for all downloaded files</caption>
             <thead>
                 <tr>
                     <th scope="col" style="vertical-align: middle;">Filename</th>
                     <th scope="col" style="vertical-align: middle;">Size</th>
-                    <th scope="col" style="vertical-align: middle;">Date</th>
+                    <th scope="col" style="vertical-align: middle;">Downloaded</th>
                     <th scope="col" style="vertical-align: middle; text-align: right">&nbsp;</th>
                 </tr>
             </thead>
@@ -106,21 +107,24 @@
                 <tr>
 
 
-                    <td style="vertical-align: middle; font-family: monospace; font-size: 0.8rem;">
+                    <td style="vertical-align: middle; font-family: monospace; font-size: 0.8rem; cursor: default;"
+                        title="{{metadata.hash}}">
                         {{metadata.fileName}}
                     </td>
 
-                    <td style="vertical-align: middle;">
-                        {{metadata.bytes}}B
+                    <td style="vertical-align: middle; cursor: default;" title="{{metadata.bytes}} bytes"
+                        data-toggle="tooltip" data-placement="left">
+                        {{displaySize}}
                     </td>
 
-                    <td style="vertical-align: middle;">
+                    <td style="vertical-align: middle; cursor: default;">
                         <span class="datetimestr" title="{{displayTime}}" data-toggle="tooltip"
                             data-placement="left"></span>
                     </td>
                     <td style="vertical-align: middle; text-align: right">
 
-                        <a class="btn btn-sm btn-primary" href="/audits/audit/{{../audit._id}}/logs/{{_id}}/download">
+                        <a class="btn btn-sm btn-primary" href="/audits/audit/{{../audit._id}}/logs/{{_id}}/download"
+                            data-toggle="tooltip" data-placement="left" title="Download signed log entry">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
                                 class="bi bi-shield-check" viewBox="0 0 16 16">
                                 <path
