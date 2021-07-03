@@ -90,14 +90,16 @@
 
     </nav>
 
-    <div class="table-responsive">
+    <div class="table-responsive email-table">
         <table class="table table-hover table-sm">
-            <caption>This table lists information for all downloaded files</caption>
+            <caption>Each email download is logged and shown here. File hashes are included in the signed log entries.
+            </caption>
             <thead>
                 <tr>
                     <th scope="col" style="vertical-align: middle;">Filename</th>
-                    <th scope="col" style="vertical-align: middle;">Size</th>
-                    <th scope="col" style="vertical-align: middle;">Downloaded</th>
+                    <th scope="col" style="vertical-align: middle; text-align: right;">Emails</th>
+                    <th scope="col" style="vertical-align: middle; text-align: right;">Size</th>
+                    <th scope="col" style="vertical-align: middle; text-align: right;">Downloaded</th>
                     <th scope="col" style="vertical-align: middle; text-align: right">&nbsp;</th>
                 </tr>
             </thead>
@@ -106,22 +108,41 @@
                 {{#each listing.data}}
                 <tr>
 
-
-                    <td style="vertical-align: middle; font-family: monospace; font-size: 0.8rem; cursor: default;"
+                    <td style="vertical-align: middle; font-family: monospace; cursor: default;"
                         title="{{metadata.hash}}">
+                        {{#if zip}}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                            class="bi bi-file-earmark-zip" viewBox="0 0 16 16">
+                            <path
+                                d="M5 7.5a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v.938l.4 1.599a1 1 0 0 1-.416 1.074l-.93.62a1 1 0 0 1-1.11 0l-.929-.62a1 1 0 0 1-.415-1.074L5 8.438V7.5zm2 0H6v.938a1 1 0 0 1-.03.243l-.4 1.598.93.62.929-.62-.4-1.598A1 1 0 0 1 7 8.438V7.5z" />
+                            <path
+                                d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1h-2v1h-1v1h1v1h-1v1h1v1H6V5H5V4h1V3H5V2h1V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z" />
+                        </svg>
+                        {{else}}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                            class="bi bi-file-earmark" viewBox="0 0 16 16">
+                            <path
+                                d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z" />
+                        </svg>
+                        {{/if}}
+
                         {{metadata.fileName}}
                     </td>
 
-                    <td style="vertical-align: middle; cursor: default;" title="{{metadata.bytes}} bytes"
-                        data-toggle="tooltip" data-placement="left">
+                    <td style="vertical-align: middle; cursor: default; text-align: right;">
+                        {{displayMessageCount}}
+                    </td>
+
+                    <td style="vertical-align: middle; cursor: default; text-align: right;"
+                        title="{{metadata.bytes}} bytes" data-toggle="tooltip" data-placement="left">
                         {{displaySize}}
                     </td>
 
-                    <td style="vertical-align: middle; cursor: default;">
+                    <td style="vertical-align: middle; cursor: default; text-align: right;">
                         <span class="datetimestr" title="{{displayTime}}" data-toggle="tooltip"
                             data-placement="left"></span>
                     </td>
-                    <td style="vertical-align: middle; text-align: right">
+                    <td style="vertical-align: middle; text-align: right;">
 
                         <a class="btn btn-sm btn-primary" href="/audits/audit/{{../audit._id}}/logs/{{_id}}/download"
                             data-toggle="tooltip" data-placement="left" title="Download signed log entry">
