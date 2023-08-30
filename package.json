@@ -32,7 +32,7 @@
         "humanize": "^0.0.9",
         "ioredis": "4.27.6",
         "moment": "2.29.1",
-        "mongodb": "3.6.9",
+        "mongodb": "3.6.10",
         "openpgp": "^5.0.0-3",
         "passport": "0.4.1",
         "passport-local": "1.0.0",
