@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     format
                 }
             },
-            function (start, end, label) {
+            (start, end, label) => {
                 $(`#${input.data('startTarget')}`).val(start.format(format));
                 $(`#${input.data('endTarget')}`).val(end.format(format));
                 console.log(
@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
         elm.textContent = moment(elm.title).format('LLL');
     }
 
-    $(function () {
+    $(() => {
         $('[data-toggle="tooltip"]').tooltip();
     });
 
@@ -209,6 +209,81 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('download-form').addEventListener('submit', () => {
             $('#downloadMessagesModal').modal('hide');
         });
+
+        checkState();
+    }
+
+    let checkAllAudits = document.getElementById('checkAllAudits');
+    if (checkAllAudits) {
+        let checkboxList = Array.from(document.querySelectorAll('.checkAudit'));
+        let selectedCount = document.getElementById('selected-audit-count');
+        let auditListInput = document.getElementById('auditlist');
+        let bulkButton = document.getElementById('bulk-download-button');
+        let bulkForm = document.getElementById('bulk-download-form');
+
+        let checkState = () => {
+            let checkedAudits = [];
+            let allSelected = false;
+
+            if (checkboxList.length) {
+                allSelected = true;
+                checkboxList.forEach(cb => {
+                    if (cb.checked) {
+                        checkedAudits.push(cb.dataset.audit);
+                    } else {
+                        allSelected = false;
+                    }
+                });
+            }
+
+            if (selectedCount) {
+                selectedCount.textContent = checkedAudits.length.toString();
+            }
+            if (auditListInput) {
+                auditListInput.value = JSON.stringify(checkedAudits);
+            }
+            if (bulkButton) {
+                bulkButton.disabled = checkedAudits.length === 0;
+            }
+
+            checkAllAudits.checked = allSelected;
+
+            return {
+                checkedAudits
+            };
+        };
+
+        let toggleAll = () => {
+            checkboxList.forEach(cb => {
+                cb.checked = checkAllAudits.checked;
+            });
+            checkState();
+        };
+
+        checkAllAudits.addEventListener('click', () => toggleAll());
+        checkAllAudits.addEventListener('change', () => toggleAll());
+
+        checkboxList.forEach(cb => {
+            cb.addEventListener('click', () => checkState());
+            cb.addEventListener('change', () => checkState());
+        });
+
+        if (!checkboxList.length) {
+            checkAllAudits.disabled = true;
+            checkAllAudits.checked = false;
+            if (bulkButton) {
+                bulkButton.disabled = true;
+            }
+        }
+
+        if (bulkForm) {
+            bulkForm.addEventListener('submit', e => {
+                let { checkedAudits } = checkState();
+                if (!checkedAudits.length) {
+                    e.preventDefault();
+                }
+            });
+        }
 
         checkState();
     }

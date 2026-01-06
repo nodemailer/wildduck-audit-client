@@ -40,6 +40,20 @@ const formatFilename = messageData =>
     messageData._id +
     '.eml';
 
+const formatFolderName = (address, fallback) => {
+    let name = (address || '').toString().trim();
+    if (!name) {
+        name = fallback || 'unknown';
+    }
+
+    name = name.replace(/[^A-Za-z0-9._@-]+/g, '_').replace(/^_+|_+$/g, '');
+    if (!name) {
+        name = fallback || 'unknown';
+    }
+
+    return name;
+};
+
 const loadAuditAsync = async (req, res) => {
     if (!req.params.audit) {
         return;
@@ -764,6 +778,155 @@ router.post(
                     }
                 }
                 await cursor.close();
+
+                try {
+                    archive.finish();
+                } catch (err) {
+                    req.log.error({ msg: 'Failed to finalize archive', err });
+                }
+            };
+
+            looper().then(resolve).catch(reject);
+        });
+    })
+);
+
+router.post(
+    '/download',
+    asyncifyRequest(async (req, res) => {
+        let paramsSchema = Joi.object({
+            audits: Joi.string().empty('').required().label('Audit listing')
+        });
+
+        const validationResult = paramsSchema.validate(Object.assign(Object.assign({}, req.params || {}), req.body), {
+            stripUnknown: true,
+            abortEarly: false,
+            convert: true
+        });
+
+        if (validationResult.error) {
+            req.flash('danger', 'Invalid audit list provided');
+            return res.redirect(`/audits`);
+        }
+
+        const values = (validationResult && validationResult.value) || {};
+        let requestedAudits;
+
+        try {
+            requestedAudits = JSON.parse(values.audits);
+            const listSchema = Joi.array().items(Joi.string().hex().length(24)).min(1).required();
+            const listResult = listSchema.validate(requestedAudits);
+            if (listResult.error) {
+                req.flash('danger', 'Invalid audit list provided');
+                return res.redirect(`/audits`);
+            }
+        } catch (err) {
+            req.flash('danger', 'Invalid audit list provided');
+            return res.redirect(`/audits`);
+        }
+
+        const availableAudits = await audits.listAudits(req.user.audit, req.user.level);
+        const auditMap = new Map(availableAudits.map(entry => [entry._id.toString(), entry]));
+
+        if (!requestedAudits.every(entry => auditMap.has(entry))) {
+            req.flash('danger', 'Invalid audit list provided');
+            return res.redirect(`/audits`);
+        }
+
+        const archive = new ZipStream();
+        const addEntry = util.promisify(archive.entry.bind(archive));
+
+        const hasher = new Hasher(config.app.hash.algo);
+
+        const curtime = new Date();
+        const fileName = `audits-${curtime
+            .toISOString()
+            .substr(0, 19)
+            .replace(/[^0-9]+/g, '-')}_bulk.zip`;
+
+        const messageCounts = new Map();
+        const usedFolderNames = new Set();
+
+        res.set('Content-Type', 'application/zip');
+        res.setHeader('Content-disposition', `attachment; filename=${fileName}`);
+
+        archive.pipe(hasher).pipe(res);
+
+        hasher.once('end', () => {
+            for (let auditId of requestedAudits) {
+                const messageCount = messageCounts.get(auditId) || 0;
+                addToStream(
+                    req.user._id,
+                    new ObjectID(auditId),
+                    'fetch_messages',
+                    Object.assign({}, values, {
+                        type: 'bulk',
+                        fileName,
+                        algo: hasher.algo,
+                        hash: hasher.hash,
+                        bytes: hasher.bytes,
+                        messageCount,
+                        curtime,
+                        owner: {
+                            _id: req.user._id,
+                            username: req.user.username,
+                            name: req.user.name
+                        },
+                        ip: req.ip
+                    })
+                ).catch(err => {
+                    req.log.error({ msg: 'Stream error', err });
+                });
+            }
+        });
+
+        return new Promise((resolve, reject) => {
+            let errored = false;
+            archive.on('error', err => {
+                req.log.error({ msg: 'Archive error', err });
+                errored = true;
+                reject(err);
+            });
+
+            const looper = async () => {
+                for (let auditId of requestedAudits) {
+                    const auditData = auditMap.get(auditId);
+                    let folderName = formatFolderName(auditData.display && auditData.display.address, auditId);
+                    if (usedFolderNames.has(folderName)) {
+                        folderName = `${folderName}_${auditId}`;
+                    }
+                    usedFolderNames.add(folderName);
+
+                    try {
+                        await addEntry(Buffer.alloc(0), { name: `${folderName}/`, type: 'directory' });
+                    } catch (err) {
+                        req.log.error({ msg: 'Failed to add folder to archive', err });
+                    }
+
+                    const query = { 'metadata.audit': new ObjectID(auditId) };
+                    const cursor = await db.gridfs
+                        .collection('audit.files')
+                        .find(query, { noCursorTimeout: true, projection: { _id: true, metadata: true } });
+
+                    let messageData;
+                    let auditMessageCount = 0;
+
+                    while ((messageData = await cursor.next())) {
+                        if (errored) {
+                            await cursor.close();
+                            return;
+                        }
+                        try {
+                            const stream = await audits.stream(messageData._id);
+                            await addEntry(stream, { name: `${folderName}/${formatFilename(messageData)}` });
+                            auditMessageCount++;
+                        } catch (err) {
+                            req.log.error({ msg: 'Failed to add file to archive', err });
+                        }
+                    }
+                    await cursor.close();
+                    messageCounts.set(auditId, auditMessageCount);
+                }
 
                 try {
                     archive.finish();
