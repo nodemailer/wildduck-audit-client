@@ -9,7 +9,8 @@ const audits = require('../../lib/audits');
 const db = require('../../lib/db');
 const Joi = require('@hapi/joi');
 const { ObjectID } = require('mongodb');
-const ZipStream = require('zip-stream');
+const ZipStreamModule = require('zip-stream');
+const ZipStream = ZipStreamModule && ZipStreamModule.default ? ZipStreamModule.default : ZipStreamModule;
 const util = require('util');
 const { addToStream } = require('../../lib/stream');
 const humanize = require('humanize');
@@ -904,9 +905,7 @@ router.post(
                     }
 
                     const query = { 'metadata.audit': new ObjectID(auditId) };
-                    const cursor = await db.gridfs
-                        .collection('audit.files')
-                        .find(query, { noCursorTimeout: true, projection: { _id: true, metadata: true } });
+                    const cursor = await db.gridfs.collection('audit.files').find(query, { noCursorTimeout: true, projection: { _id: true, metadata: true } });
 
                     let messageData;
                     let auditMessageCount = 0;
