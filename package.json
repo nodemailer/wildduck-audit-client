@@ -21,7 +21,8 @@
     "dependencies": {
         "@hapi/joi": "17.1.1",
         "@phc/pbkdf2": "1.1.14",
-        "body-parser": "1.19.0",
+        "@zone-eu/wildduck": "1.46.14",
+        "body-parser": "2.2.1",
         "connect-flash": "0.1.1",
         "connect-redis": "6.0.0",
         "cookie-parser": "1.4.5",
@@ -36,11 +37,10 @@
         "openpgp": "^5.0.0-3",
         "passport": "0.4.1",
         "passport-local": "1.0.0",
-        "pino": "6.11.3",
-        "pino-http": "5.5.0",
-        "shortid": "2.2.16",
-        "wild-config": "1.5.1",
-        "wildduck": "1.33.5",
-        "zip-stream": "4.1.0"
+        "pino": "10.1.0",
+        "pino-http": "11.0.0",
+        "shortid": "2.2.17",
+        "wild-config": "1.7.1",
+        "zip-stream": "7.0.2"
     }
 }
